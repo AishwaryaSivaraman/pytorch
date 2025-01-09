@@ -9,8 +9,16 @@ from typing import cast, IO, Optional, Type
 # introduced as collections.abc.Buffer in Python 3.12
 from typing_extensions import Buffer
 
+import zstandard
 
-__all__ = ["Extension", "StreamTransformExtension", "Rot13Example", "ExtensionRegistry"]
+
+__all__ = [
+    "Extension",
+    "StreamTransformExtension",
+    "Rot13Example",
+    "ZStandard",
+    "ExtensionRegistry",
+]
 
 
 class Extension(abc.ABC):
@@ -169,11 +177,37 @@ class Rot13Example(StreamTransformExtension):
         return cast(IO[bytes], Reader(input))
 
 
+class ZStandard(StreamTransformExtension):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @staticmethod
+    def from_descriptor(version: str) -> "ZStandard":
+        if version.partition(".")[0] != "1":
+            raise ValueError(f"Unknown extension {version=}")
+        return ZStandard()
+
+    @staticmethod
+    def registry_name() -> str:
+        return "stream.zstd"
+
+    def get_descriptor(self) -> str:
+        return f"{self.registry_name()}/1"
+
+    def transform_to(self, output: IO[bytes]) -> IO[bytes]:
+        compressor = zstandard.ZstdCompressor()
+        return compressor.stream_writer(output)
+
+    def transform_from(self, input: IO[bytes]) -> IO[bytes]:
+        decompressor = zstandard.ZstdDecompressor()
+        return decompressor.stream_reader(input)
+
+
 class ExtensionRegistry:
     def __init__(self) -> None:
         # Populate default registry contents
         self.extensions: dict[str, Type[Extension]] = {
-            cls.registry_name(): cls for cls in [Rot13Example]
+            cls.registry_name(): cls for cls in (Rot13Example, ZStandard)
         }
 
     def register(self, cls: Type[Extension]) -> None:
