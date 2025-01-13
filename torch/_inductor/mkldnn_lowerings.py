@@ -658,7 +658,7 @@ def register_onednn_fusion_ops():
                             _w_scale = w_scale_loader(weight_compens_index)
                             _weight_compo = weight_compens_loader(weight_compens_index)
 
-                            # Step 1: Compute int8xint8->int32 GEMM & then apply compensation
+                            # Step 1: Compute s8s8->s32 or u8s8->s32 GEMM & then apply compensation
 
                             temp = ops.mul(
                                 ops.mul(
