@@ -746,7 +746,9 @@ class DictKeySetVariable(SetVariable):
         return dict_keys
 
     def as_python_constant(self):
-        unimplemented("DictKeySetVariable.as_python_constant")
+        return dict.fromkeys(
+            {k.vt.as_python_constant() for k in self.set_items}, None
+        ).keys()
 
     def call_method(
         self,
